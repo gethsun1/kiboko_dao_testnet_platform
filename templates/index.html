@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KibokoDAO DApp</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+         <!-- KibokoDAO Logo -->
+         <img src="https://amaranth-accused-buzzard-564.mypinata.cloud/ipfs/QmU4rw7CW5dHqmt8wykHSER9vaVvbcZJawKgkTX6Gj5bSw" alt="KibokoDAO Logo" class="kiboko-logo">
+
+         
+        <h1>Welcome to KibokoDAO Test Platform</h1>
+        <p>Start by connecting your wallet.</p>
+        <button id="connect-wallet">Connect to Phantom Wallet</button>
+        <p id="wallet-status"></p>
+        <button id="check-balance" style="display:none;">Check Balance</button>
+        <p id="balance-status"></p>
+
+        <!-- Swap Functionality -->
+        <button id="swap-button" style="display:none;">Swap MLNK/SOL</button>
+        <div id="swap-form" style="display:none;">
+            <input type="number" id="swap-amount" placeholder="Amount of MLNK to swap">
+            <button id="execute-swap">Execute Swap</button>
+            <p id="swap-status"></p>
+        </div>
+
+        <!-- Transaction History -->
+        <button id="get-history-button" style="display:none;">Get Transaction History</button>
+        <div id="history-status"></div>
+
+       
+    </div>
+
+    <script>
+        const connectWalletButton = document.getElementById('connect-wallet');
+        const walletStatus = document.getElementById('wallet-status');
+        const checkBalanceButton = document.getElementById('check-balance');
+        const balanceStatus = document.getElementById('balance-status');
+        const swapButton = document.getElementById('swap-button');
+        const swapForm = document.getElementById('swap-form');
+        const executeSwapButton = document.getElementById('execute-swap');
+        const swapStatus = document.getElementById('swap-status');
+        const getHistoryButton = document.getElementById('get-history-button');
+        const historyStatus = document.getElementById('history-status');
+
+        connectWalletButton.addEventListener('click', async () => {
+            if (window.solana) {
+                try {
+                    const response = await window.solana.connect();
+                    const walletAddress = response.publicKey.toString();
+                    walletStatus.innerText = `Connected Wallet: ${walletAddress}`;
+                    checkBalanceButton.style.display = 'block';
+                    checkBalanceButton.setAttribute('data-address', walletAddress);
+                    swapButton.style.display = 'block';
+                    getHistoryButton.style.display = 'block';
+                } catch (err) {
+                    console.error('Connection error:', err);
+                }
+            } else {
+                alert('Phantom wallet not found! Please install it.');
+            }
+        });
+
+        checkBalanceButton.addEventListener('click', async () => {
+            const address = checkBalanceButton.getAttribute('data-address');
+            const response = await fetch(`/wallet/${address}`);
+            const data = await response.json();
+            balanceStatus.innerText = `Balance: ${data.balance} SOL`;
+        });
+
+        swapButton.addEventListener('click', () => {
+            swapForm.style.display = 'block';
+        });
+
+        executeSwapButton.addEventListener('click', async () => {
+            const amount = document.getElementById('swap-amount').value;
+            const walletAddress = checkBalanceButton.getAttribute('data-address');
+
+            const response = await fetch('/swap', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from_token: 'MLNK',
+                    to_token: 'SOL',
+                    amount: amount,
+                    wallet_address: walletAddress
+                }),
+            });
+
+            const result = await response.json();
+            swapStatus.innerText = result.message; // Show success or error message
+        });
+
+        getHistoryButton.addEventListener('click', async () => {
+            const address = checkBalanceButton.getAttribute('data-address');
+            const response = await fetch(`/transaction-history/${address}`);
+            const data = await response.json();
+            let historyHTML = '<h3>Transaction History</h3><ul>';
+            data.forEach(transaction => {
+                historyHTML += `<li>${transaction.signature}</li>`;
+            });
+            historyHTML += '</ul>';
+            historyStatus.innerHTML = historyHTML;
+        });
+    </script>
+</body>
+</html>
